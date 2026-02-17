@@ -1,0 +1,2 @@
+; Opens your Documents folder - Ctrl+Alt+D 
+^!d::Run(EnvGet("USERPROFILE") . "\Downloads")  
