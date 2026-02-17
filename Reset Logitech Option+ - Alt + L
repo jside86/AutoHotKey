@@ -25,7 +25,7 @@
 #Requires AutoHotkey v2.0
 #SingleInstance Force
 
-; 1. Auto-Execute Admin Check
+; Auto-Execute Admin Check
 ; This ensures your Logitech and Monitor commands have the permissions they need
 if !A_IsAdmin
 {
