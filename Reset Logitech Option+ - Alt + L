@@ -22,3 +22,13 @@
 
     SetTimer(() => ToolTip(), -3000)
 }
+#Requires AutoHotkey v2.0
+#SingleInstance Force
+
+; 1. Auto-Execute Admin Check
+; This ensures your Logitech and Monitor commands have the permissions they need
+if !A_IsAdmin
+{
+    Run("*RunAs " . A_ScriptFullPath)
+    ExitApp()
+}
