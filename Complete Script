@@ -1,0 +1,2138 @@
+;------------------------------------------------------------------------------
+; GLOBAL TOOLS (GENERAL PRODUCTIVITY)
+;------------------------------------------------------------------------------
+
+; Seach google the selected text - Ctrl+Shift+C 
+^+c::
+{
+    A_Clipboard := ""             ; Clear clipboard
+    Send("^c")                    ; Copy selected text
+    if ClipWait(2)                ; Wait up to 2s for text to arrive
+        Run("https://www.google.com/search?q=" . A_Clipboard)
+}
+
+; Opens your Documents folder - Ctrl+Alt+D 
+^!d::Run(EnvGet("USERPROFILE") . "\Downloads")  
+
+; Copy selected text, open and query Gemini - Alt + G
+#Requires AutoHotkey v2.0
+
+!g:: ; Alt + G
+{
+    ; 1. Copy the highlighted text
+    A_Clipboard := "" 
+    Send("^c")
+    if !ClipWait(2)
+        return
+
+    ; 2. Open Gemini
+    Run("https://gemini.google.com/app")
+
+    ; 3. Wait for the browser window to appear (Max 5 seconds)
+    if WinWaitActive("ahk_exe chrome.exe", , 5) or WinWaitActive("ahk_exe msedge.exe", , 5)
+    {
+        Sleep(1500) ; Wait 1.5s for the page elements to actually load
+        
+        ; 4. Paste the text
+        Send("^v")
+        
+        Sleep(300) ; Tiny pause to ensure paste is finished
+        
+        ; 5. Press Enter to send the query
+        Send("{Enter}")
+    }
+}
+
+;  Make selected text UPPERCASE - Alt + Shift + U
++!u::
+{
+    A_Clipboard := ""               ; Clear clipboard
+    Send("^c")                      ; Copy selection
+    if ClipWait(2)                  ; Wait up to 2s for text
+    {
+        A_Clipboard := StrUpper(A_Clipboard)
+        Send("^v")                  ; Paste uppercase text
+    }
+}
+
+; Make selected text lowercase - Alt + Shift + L
++!l::
+{
+    A_Clipboard := ""
+    Send("^c")
+    if ClipWait(2)
+    {
+        A_Clipboard := StrLower(A_Clipboard)
+        Send("^v")
+    }
+}
+
+; Change the transparency of current windows to 128 and back - Alt+T
+!t::  
+{
+    currentTrans := WinGetTransparent("A")
+    if (currentTrans = 128)
+        WinSetTransparent(255, "A")
+    else
+        WinSetTransparent(128, "A")
+}
+
+;------------------------------------------------------------------------------
+; MEDIA & HARDWARE CONTROL
+;------------------------------------------------------------------------------
+
+; Play/Pause Media - Ctrl+Alt+Space
+^!Space::Send("{Media_Play_Pause}")
+
+; Previous Media - Ctrl+Alt+Left
+^!Left::Send("{Media_Prev}")
+
+; Next Media- Ctrl+Alt+Right
+^!Right::Send("{Media_Next}")
+
+; Up and down volume - Alt + Scroll Wheel
+!WheelUp::Send("{Volume_Up}")
+!WheelDown::Send("{Volume_Down}")
+
+; Stacked Hotkeys: Both trigger the code below
+^!m::             ; Ctrl + Alt + M
+!#1::       ; Alt + Mouse Side Button (Back)
+{
+    SoundSetMute(-1) ; Toggle Mute
+    
+    ; Bigger notification as requested
+    isMuted := SoundGetMute()
+    ToolTip(isMuted ? "`n  🔇 SOUND MUTED  `n " : "`n  🔊 SOUND ON  `n ")
+    SetTimer(() => ToolTip(), -2000)
+}
+
+; Toggle the audio source between speaker and headset -  Ctrl + Alt + S
+#Requires AutoHotkey v2.0
+
+^!s:: 
+{
+    static toggle := 0
+    
+    if (toggle = 0) {
+        ; Use the new name for the headset
+        Run("nircmd setdefaultsounddevice Headset",, "Hide")
+        ToolTip("Audio: Headset (Logitech)")
+        toggle := 1
+    } else {
+        ; Use the new name for the desktop speakers
+        Run("nircmd setdefaultsounddevice `"Desktop Speakers`"",, "Hide")
+        ToolTip("Audio: Desktop Speakers (Realtek)")
+        toggle := 0
+    }
+    
+    SetTimer () => ToolTip(), -1500 
+}
+
+;------------------------------------------------------------------------------
+; APPLICATION-SPECIFIC LOGIC
+;------------------------------------------------------------------------------
+
+; kills the script - Ctrl+Alt+Esc
+^!Escape::ExitApp() 
+
+#Requires AutoHotkey v2.0
+
+; While VS Code is active to Save AND Reload the script - Ctrl + S
+#HotIf WinActive("ahk_exe Code.exe")
+^s::
+{
+    Send("^s") ; Sends the native Save command to VS Code
+    Sleep(300) ; Brief pause to ensure the file is written to the drive
+    Reload()   ; Restarts the script with the new changes
+}
+#HotIf
+
+;------------------------------------------------------------------------------
+; Application-Specific Logic
+;------------------------------------------------------------------------------
+
+#Requires AutoHotkey v2.0
+
+; --- INITIALIZATION ---
+TimeOSD := Gui("+LastFound +AlwaysOnTop +ToolWindow -Caption")
+TimeOSD.SetFont("s18", "Calibri")
+TimeOSD.BackColor := "268BD2"
+TimeOSDText := TimeOSD.Add("Text", "cWhite w250 h40 Center", "")
+SetTimer(TimeOSDPulse, 1000)
+
+TimeOSDPulse() {
+    static lastTime := ""
+    currTime := FormatTime(, "HH:mm") ; Using 24-hour format
+    
+    ; Don't show if same minute or if you've been away from PC for 10 mins
+    if (lastTime == currTime || A_TimeIdlePhysical > 600000)
+        return
+
+    ; Check for specific intervals (Every 20 mins)
+    mins := SubStr(currTime, 4, 2)
+    if (mins == "00") {
+        TimeOSDShow(currTime, "268BD2") ; Blue
+    } else if (mins == "20") {
+        TimeOSDShow(currTime, "859900") ; Green
+    } else if (mins == "40") {
+        TimeOSDShow(currTime, "CB4B16") ; Orange
+    }
+    
+    lastTime := currTime
+}
+
+TimeOSDShow(timeText, bg) {
+    TimeOSD.BackColor := bg
+    TimeOSDText.Value := "It's " . timeText . " already!"
+    yPos := A_ScreenHeight - 120
+    TimeOSD.Show("xCenter y" . yPos . " NoActivate")
+    SetTimer(() => TimeOSD.Hide(), -10000) ; Hide after 10s
+}
+
+#Requires AutoHotkey v2.0
+
+; Update this to your actual folder path to stop the "File Not Found" error
+Global MultiTool := '"C:\Program Files\NirSoft\multimonitortool-x64\MultiMonitorTool.exe"'
+
+!l:: ; Alt + L to reset Logitech
+{
+    ToolTip("Force Killing Logi Processes...")
+    
+    ; We kill all three specific names shown in your image
+    ; /F is force, /T kills child processes like the Broker
+    RunWait("taskkill /F /IM logioptionsplus_agent.exe /T",, "Hide")
+    RunWait("taskkill /F /IM logioptionsplus_appbroker.exe /T",, "Hide")
+    RunWait("taskkill /F /IM logioptionsplus_updater.exe /T",, "Hide")
+    
+    Sleep(1000) ; Give Windows a full second to clear the memory
+    
+    ; Relaunch the Agent (it will pull the others up with it)
+    LogiPath := "C:\Program Files\Logi\LogiOptionsPlus\logioptionsplus_agent.exe"
+    
+    if FileExist(LogiPath) {
+        Run(LogiPath)
+        ToolTip("Logitech Restored Successfully")
+    } else {
+        ToolTip("Error: logioptionsplus_agent.exe not found at path")
+    }
+
+    SetTimer(() => ToolTip(), -3000)
+}
+
+
+#Requires AutoHotkey v2.0
+#SingleInstance Force
+
+; 1. Auto-Execute Admin Check
+; This ensures your Logitech and Monitor commands have the permissions they need
+if !A_IsAdmin
+{
+    Run("*RunAs " . A_ScriptFullPath)
+    ExitApp()
+}
+
+; 2. Immediate Reload Feedback
+; Plays the sound and shows the tip the millisecond the script is ready
+SoundPlay(A_WinDir . "\Media\Windows Ding.wav")
+ToolTip("🚀 Jeremy's Shortcuts: ACTIVE")
+
+; 3. Clear the notification after 3 seconds
+SetTimer(() => ToolTip(), -3000)
+
+;------------------------------------------------------------------------------
+; TEXT EXPANSION & AUTOCORRECT (HOTSTRINGS)
+;------------------------------------------------------------------------------
+
+:*:msg::message 
+::teh::the
+::dont::don't
+::recieve::receive
+::btw::by the way
+:*:@@::jside86@gmail.com
+::hadd::168A Avenue NW
+::doesnt::doesn't
+::wied::weird
+::occured::occurred
+::seperate::separate
+::tahn::than
+::realy::really
+::AHK::AutoHotKey
+::thakns::thanks
+::didnt::didn't
+
+
+::caf::Canadian Armed Forces
+
+::.date::
+{
+    Send(FormatTime(, "dd-MM-yyyy"))
+}
+
+::.now::
+{
+    Send(FormatTime(, "dd-MM-yyyy HHmm 'hrs'"))
+}
+
+; Subscript
+:*:_0::₀
+:*:_1::₁
+:*:_2::₂
+:*:_3::₃
+:*:_4::₄
+:*:_5::₅
+:*:_6::₆
+:*:_7::₇
+:*:_8::₈
+:*:_9::₉
+; Superscript 
+:*:^0::⁰
+:*:^1::¹
+:*:^2::²
+:*:^3::³
+:*:^4::⁴
+:*:^5::⁵
+:*:^6::⁶
+:*:^7::⁷
+:*:^8::⁸
+:*:^9::⁹
+
+; Lowercase Autocorrect
+:C:(c)::©
+:C:(e)::€
+:C:(r)::®
+:C:(tm)::™
+:C:...::…
+:C:abbout::about
+:C:abotu::about
+:C:abouta::about a
+:C:aboutit::about it
+:C:aboutthe::about the
+:C:abscence::absence
+:C:accesories::accessories
+:C:accidant::accident
+:C:accomodate::accommodate
+:C:accordingto::according to
+:C:accross::across
+:C:acheive::achieve
+:C:acheived::achieved
+:C:acheiving::achieving
+:C:acn::can
+:C:acommodate::accommodate
+:C:acomodate::accommodate
+:C:actualyl::actually
+:C:additinal::additional
+:C:addtional::additional
+:C:adequit::adequate
+:C:adequite::adequate
+:C:adn::and
+:C:advanage::advantage
+:C:affraid::afraid
+:C:afterthe::after the
+:C:againstt he::against the
+:C:aganist::against
+:C:aggresive::aggressive
+:C:agian::again
+:C:agreemeent::agreement
+:C:agreemeents::agreements
+:C:agreemnet::agreement
+:C:agreemnets::agreements
+:C:agressive::aggressive
+:C:ahppen::happen
+:C:ahve::have
+:C:allwasy::always
+:C:allwyas::always
+:C:almots::almost
+:C:almsot::almost
+:C:alomst::almost
+:C:alot::a lot
+:C:alraedy::already
+:C:alreayd::already
+:C:alreday::already
+:C:alwasy::always
+:C:alwats::always
+:C:alway::always
+:C:alwyas::always
+:C:amde::made
+:C:Ameria::America
+:C:amke::make
+:C:amkes::makes
+:C:anbd::and
+:C:andone::and one
+:C:andt he::and the
+:C:andteh::and the
+:C:andthe::and the
+:C:anothe::another
+:C:anual::annual
+:C:apparant::apparent
+:C:apparrent::apparent
+:C:appearence::appearance
+:C:appeares::appears
+:C:applicaiton::application
+:C:applicaitons::applications
+:C:applyed::applied
+:C:appointiment::appointment
+:C:approrpiate::appropriate
+:C:approrpriate::appropriate
+:C:aquisition::acquisition
+:C:aquisitions::acquisitions
+:C:aren;t::aren’t
+:C:arguement::argument
+:C:arguements::arguments
+:C:arn't::aren’t
+:C:arond::around
+:C:artical::article
+:C:articel::article
+:C:asdvertising::advertising
+:C:askt he::ask the
+:C:assistent::assistant
+:C:asthe::as the
+:C:atention::attention
+:C:atmospher::atmosphere
+:C:attentioin::attention
+:C:atthe::at the
+:C:audeince::audience
+:C:audiance::audience
+:C:availalbe::available
+:C:awya::away
+:C:aywa::away
+:C:bakc::back
+:C:balence::balance
+:C:ballance::balance
+:C:baout::about
+:C:bcak::back
+:C:beacuse::because
+:C:becasue::because
+:C:becaus::because
+:C:becausea::because a
+:C:becauseof::because of
+:C:becausethe::because the
+:C:becauseyou::because you
+:C:becomeing::becoming
+:C:becomming::becoming
+:C:becuase::because
+:C:becuse::because
+:C:befoer::before
+:C:beggining::beginning
+:C:begining::beginning
+:C:beginining::beginning
+:C:beleiev::believe
+:C:beleieve::believe
+:C:beleif::belief
+:C:beleive::believe
+:C:beleived::believed
+:C:beleives::believes
+:C:benifit::benefit
+:C:benifits::benefits
+:C:betwen::between
+:C:beutiful::beautiful
+:C:blase::blasé
+:C:boxs::boxes
+:C:brodcast::broadcast
+:C:butthe::but the
+:C:bve::be
+:C:byt he::by the
+:C:cafe::café
+:C:caharcter::character
+:C:calcullated::calculated
+:C:calulated::calculated
+:C:can't of been::can’t have been
+:C:can;t::can’t
+:C:candidtae::candidate
+:C:candidtaes::candidates
+:C:catagory::category
+:C:categiory::category
+:C:certian::certain
+:C:challange::challenge
+:C:challanges::challenges
+:C:chaneg::change
+:C:chanegs::changes
+:C:changable::changeable
+:C:changeing::changing
+:C:changng::changing
+:C:charachter::character
+:C:charachters::characters
+:C:charactor::character
+:C:charecter::character
+:C:charector::character
+:C:cheif::chief
+:C:chekc::check
+:C:chnage::change
+:C:cieling::ceiling
+:C:circut::circuit
+:C:claer::clear
+:C:claered::cleared
+:C:claerly::clearly
+:C:cliant::client 
+:C:cliche::cliché 
+:C:cna::can 
+:C:colection::collection
+:C:comanies::companies
+:C:comany::company
+:C:comapnies::companies
+:C:comapny::company
+:C:combintation::combination
+:C:comited::committed
+:C:comittee::committee
+:C:commadn::command
+:C:comming::coming
+:C:commitee::committee
+:C:committe::committee
+:C:committment::commitment
+:C:committments::commitments
+:C:committy::committee
+:C:comntain::contain
+:C:comntains::contains
+:C:compair::compare
+:C:company;s::company’s
+:C:compleated::completed
+:C:compleatly::completely
+:C:compleatness::completeness
+:C:completly::completely
+:C:completness::completeness
+:C:composate::composite
+:C:comtain::contain 
+:C:comtains::contains 
+:C:comunicate::communicate 
+:C:comunity::community
+:C:condolances::condolences
+:C:conected::connected
+:C:conferance::conference
+:C:confirmmation::confirmation
+:C:considerit::considerate
+:C:considerite::considerate
+:C:consonent::consonant
+:C:conspiricy::conspiracy
+:C:consultent::consultant
+:C:convertable::convertible
+:C:cooparate::cooperate
+:C:cooporate::cooperate
+:C:corproation::corporation
+:C:corproations::corporations
+:C:corruptable::corruptible
+:C:cotten::cotton
+:C:coudl::could
+:C:coudln't::couldn’t
+:C:coudn't::couldn’t
+:C:could of been::could have been
+:C:could of had::could have had
+:C:couldn;t::couldn’t
+:C:couldnt::couldn’t
+:C:couldthe::could the
+:C:cpoy::copy
+:C:creme::crème
+:C:ctaegory::category
+:C:cusotmer::customer
+:C:cusotmers::customers
+:C:cutsomer::customer
+:C:cutsomers::customers
+:C:cxan::can
+:C:danceing::dancing
+:C:dcument::document
+:C:deatils::details
+:C:decison::decision
+:C:decisons::decisions
+:C:decor::décor
+:C:defendent::defendant
+:C:definately::definitely
+:C:deja vu::déjà vu 
+:C:deptartment::department 
+:C:desicion::decision
+:C:desicions::decisions
+:C:desision::decision
+:C:desisions::decisions
+:C:detente::détente
+:C:develeoprs::developers
+:C:devellop::develop
+:C:develloped::developed
+:C:develloper::developer
+:C:devellopers::developers
+:C:develloping::developing
+:C:devellopment::development
+:C:devellopments::developments
+:C:devellops::develop
+:C:develope::develop
+:C:developement::development
+:C:developements::developments
+:C:developor::developer
+:C:developors::developers
+:C:develpment::development
+:C:diaplay::display
+:C:didint::didn’t
+:C:didn;t::didn’t
+:C:didnot::did not
+:C:didnt::didn’t
+:C:difefrent::different
+:C:diferences::differences
+:C:differance::difference
+:C:differances::differences
+:C:differant::different
+:C:differemt::different
+:C:differnt::different
+:C:diffrent::different
+:C:directer::director
+:C:directers::directors
+:C:directiosn::direction
+:C:disatisfied::dissatisfied
+:C:discoverd::discovered
+:C:disign::design
+:C:dispaly::display
+:C:dissonent::dissonant
+:C:distribusion::distribution 
+:C:divsion::division 
+:C:do'nt::don’t 
+:C:docuement::documents 
+:C:docuemnt::document 
+:C:documetn::document 
+:C:documnet::document 
+:C:documnets::documents 
+:C:doe snot::does not 
+:C:doens't::doesn’t
+:C:doese::does
+:C:doesn;t::doesn’t
+:C:doesnt::doesn’t
+:C:doign::doing
+:C:doimg::doing
+:C:doind::doing
+:C:dollers::dollars
+:C:don't no::don’t know
+:C:don;t::don’t
+:C:donig::doing
+:C:dont::don’t
+:C:dosn't::doesn’t
+:C:driveing::driving
+:C:drnik::drink
+:C:eclair::éclair
+:C:efel::feel
+:C:effecient::efficient 
+:C:efort::effort 
+:C:eforts::efforts 
+:C:ehr::her 
+:C:eligable::eligible 
+:C:embarass::embarrass 
+:C:emigre::émigré 
+:C:enought::enough
+:C:entree::entrée
+:C:equippment::equipment
+:C:equivalant::equivalent
+:C:esle::else
+:C:especally::especially
+:C:especialyl::especially
+:C:espesially::especially
+:C:excellant::excellent
+:C:excercise::exercise 
+:C:exchagne::exchange 
+:C:exchagnes::exchanges 
+:C:excitment::excitement 
+:C:exhcange::exchange 
+:C:exhcanges::exchanges 
+:C:experiance::experience 
+:C:experienc::experience 
+:C:exprience::experience 
+:C:exprienced::experienced 
+:C:eyt::yet 
+:C:facade::façade 
+:C:faeture::feature 
+:C:faetures::features 
+:C:familair::familiar
+:C:familar::familiar
+:C:familliar::familiar
+:C:fammiliar::familiar
+:C:feild::field
+:C:feilds::fields
+:C:fianlly::finally
+:C:fidn::find
+:C:finalyl::finally
+:C:firends::friends
+:C:firts::first
+:C:follwo::follow
+:C:follwoing::following
+:C:fora::for a
+:C:foriegn::foreign
+:C:forthe::for the
+:C:forwrd::forward
+:C:forwrds::forwards
+:C:foudn::found
+:C:foward::forward
+:C:fowards::forwards
+:C:freind::friend
+:C:freindly::friendly
+:C:freinds::friends
+:C:frmo::from
+:C:fromt he::from the
+:C:fromthe::from the
+:C:furneral::funeral
+:C:fwe::few
+:C:garantee::guarantee
+:C:gaurd::guard
+:C:gemeral::general
+:C:gerat::great
+:C:geting::getting
+:C:gettin::getting
+:C:gievn::given
+:C:giveing::giving
+:C:gloabl::global
+:C:goign::going
+:C:gonig::going
+:C:govenment::government
+:C:goverment::government
+:C:gruop::group
+:C:gruops::groups
+:C:grwo::grow
+:C:guidlines::guidelines
+:C:hadbeen::had been
+:C:hadn;t::hadn’t
+:C:haev::have
+:C:hapen::happen
+:C:hapened::happened
+:C:hapening::happening
+:C:hapens::happens
+:C:happend::happened
+:C:hasbeen::has been
+:C:hasn;t::hasn’t
+:C:hasnt::hasn’t
+:C:havebeen::have been
+:C:haveing::having
+:C:haven;t::haven’t
+:C:hda::had
+:C:he;ll::he’ll
+:C:hearign::hearing
+:C:helpfull::helpful
+:C:here;s::here’s
+:C:hesaid::he said
+:C:hewas::he was
+:C:hge::he
+:C:hismelf::himself
+:C:hlep::help
+:C:hsa::has
+:C:hsi::his
+:C:hte::the
+:C:htere::there
+:C:htese::these
+:C:htey::they
+:C:hting::thing
+:C:htink::think
+:C:htis::this
+:C:htp:::http:
+:C:http:\\::http://
+:C:httpL::http:
+:C:hvae::have
+:C:hvaing::having
+:C:hwich::which
+:C:i::I
+:C:i snot::is not
+:C:I"m::I’m
+:C:I;d::I’d
+:C:I;ll::I’ll
+:C:idae::idea
+:C:idaes::ideas
+:C:identofy::identify
+:C:ihs::his
+:C:iits the::it’s the
+:C:imediate::immediate
+:C:imediatly::immediately
+:C:immediatly::immediately
+:C:importent::important 
+:C:importnat::important 
+:C:impossable::impossible 
+:C:improvemnt::improvement
+:C:improvment::improvement
+:C:includ::include
+:C:indecate::indicate
+:C:indenpendence::independence
+:C:indenpendent::independent
+:C:indepedent::independent
+:C:independance::independence
+:C:independant::independent
+:C:influance::influence 
+:C:infomation::information 
+:C:informatoin::information 
+:C:inital::initial
+:C:instaleld::installed
+:C:insted::instead
+:C:insurence::insurance
+:C:int he::in the
+:C:inteh::in the
+:C:interum::interim
+:C:inthe::in the
+:C:inwhich::in which
+:C:isn;t::isn’t
+:C:isthe::is the
+:C:it snot::it’s not
+:C:it' snot::it’s not
+:C:it;ll::it’ll
+:C:it;s::it’s
+:C:itis::it is
+:C:ititial::initial
+:C:itnerest::interest
+:C:itnerested::interested
+:C:itneresting::interesting
+:C:itnerests::interests
+:C:its a::it’s a
+:C:its the::it’s the
+:C:itwas::it was
+:C:iwll::will
+:C:iwth::with
+:C:jsut::just
+:C:jugment::judgment
+:C:knowldge::knowledge
+:C:knowlege::knowledge
+:C:knwo::know
+:C:knwon::known
+:C:knwos::knows
+:C:konw::know
+:C:konwn::known
+:C:konws::knows
+:C:labratory::laboratory
+:C:lastyear::last year
+:C:learnign::learning
+:C:lenght::length
+:C:let's him::lets him
+:C:let's it::lets it
+:C:let;s::let’s
+:C:levle::level
+:C:libary::library
+:C:librarry::library
+:C:librery::library
+:C:liek::like
+:C:liekd::liked
+:C:lieutenent::lieutenant
+:C:liev::live
+:C:likly::likely
+:C:lisense::license
+:C:littel::little
+:C:litttle::little
+:C:liuke::like
+:C:liveing::living
+:C:loev::love
+:C:lonly::lonely
+:C:lookign::looking
+:C:maintenence::maintenance
+:C:makeing::making
+:C:managment::management
+:C:mantain::maintain
+:C:marraige::marriage
+:C:may of been::may have been
+:C:may of had::may have had
+:C:memeber::member 
+:C:merchent::merchant 
+:C:mesage::message 
+:C:mesages::messages 
+:C:might of been::might have been
+:C:might of had::might have had
+:C:mispell::misspell
+:C:mispelling::misspelling
+:C:mispellings::misspellings
+:C:mkae::make
+:C:mkaes::makes
+:C:mkaing::making
+:C:moeny::money
+:C:morgage::mortgage
+:C:mroe::more
+:C:must of been::must have been
+:C:must of had::must have had
+:C:mysefl::myself
+:C:myu::my
+:C:naive::naïve
+:C:necassarily::necessarily
+:C:necassary::necessary
+:C:neccessarily::necessarily
+:C:neccessary::necessary
+:C:necesarily::necessarily
+:C:necesary::necessary
+:C:negotiaing::negotiating
+:C:nkow::know
+:C:nothign::nothing
+:C:nver::never
+:C:nwe::new
+:C:nwo::now
+:C:obediant::obedient
+:C:ocasion::occasion
+:C:occassion::occasion
+:C:occured::occurred
+:C:occurence::occurrence
+:C:occurrance::occurrence
+:C:ocur::occur
+:C:oeprator::operator
+:C:ofits::of its
+:C:oft he::of the
+:C:ofthe::of the
+:C:oging::going
+:C:ohter::other
+:C:omre::more
+:C:oneof::one of
+:C:onepoint::one point
+:C:ont he::on the
+:C:onthe::on the
+:C:onyl::only
+:C:oppasite::opposite
+:C:opperation::operation
+:C:oppertunity::opportunity
+:C:opposate::opposite
+:C:opposible::opposable
+:C:opposit::opposite
+:C:oppotunities::opportunities
+:C:oppotunity::opportunity
+:C:orginization::organization
+:C:orginized::organized
+:C:otehr::other
+:C:otu::out
+:C:outof::out of
+:C:overthe::over the
+:C:owrk::work
+:C:owuld::would
+:C:oxident::oxidant
+:C:papaer::paper
+:C:parliment::parliament
+:C:partof::part of
+:C:paymetn::payment
+:C:paymetns::payments
+:C:pciture::picture
+:C:peice::piece
+:C:peices::pieces
+:C:peolpe::people
+:C:peopel::people
+:C:percentof::percent of
+:C:percentto::percent to
+:C:performence::performance
+:C:perhasp::perhaps
+:C:perhpas::perhaps
+:C:permanant::permanent 
+:C:perminent::permanent 
+:C:personalyl::personally 
+:C:pleasent::pleasant
+:C:poeple::people
+:C:porblem::problem
+:C:porblems::problems
+:C:porvide::provide
+:C:possable::possible
+:C:postition::position
+:C:potentialy::potentially
+:C:pregnent::pregnant
+:C:presance::presence
+:C:probelm::problem
+:C:probelms::problems
+:C:prominant::prominent
+:C:protege::protégé
+:C:protoge::protégé 
+:C:psoition::position 
+:C:ptogress::progress 
+:C:puting::putting
+:C:pwoer::power
+:C:quater::quarter
+:C:quaters::quarters 
+:C:quesion::question 
+:C:quesions::questions 
+:C:questioms::questions 
+:C:questiosn::questions 
+:C:questoin::question 
+:C:quetion::question
+:C:quetions::questions
+:C:realyl::really
+:C:reccomend::recommend
+:C:reccommend::recommend
+:C:receieve::receive
+:C:recieve::receive
+:C:recieved::received
+:C:recieving::receiving
+:C:recomend::recommend
+:C:recomendation::recommendation
+:C:recomendations::recommendations
+:C:recomended::recommended
+:C:reconize::recognize
+:C:recrod::record
+:C:religous::religious
+:C:reluctent::reluctant
+:C:remeber::remember
+:C:reommend::recommend
+:C:representativs::representatives
+:C:representives::representatives
+:C:represetned::represented
+:C:represnt::represent
+:C:reserach::research
+:C:resollution::resolution
+:C:resorces::resources
+:C:respomd::respond
+:C:respomse::response
+:C:responce::response
+:C:responsability::responsibility
+:C:responsable::responsible
+:C:responsibile::responsible
+:C:responsiblity::responsibility
+:C:restaraunt::restaurant
+:C:restuarant::restaurant
+:C:reult::result
+:C:reveiw::review
+:C:reveiwing::reviewing
+:C:rwite::write
+:C:rythm::rhythm
+:C:saidhe::said he
+:C:saidit::said it
+:C:saidt he::said the
+:C:saidthat::said that
+:C:saidthe::said the
+:C:scedule::schedule
+:C:sceduled::scheduled
+:C:seance::séance
+:C:secratary::secretary
+:C:sectino::section
+:C:seh::she
+:C:selectoin::selection
+:C:sentance::sentence
+:C:separeate::separate
+:C:seperate::separate
+:C:sercumstances::circumstances
+:C:shcool::school
+:C:she;ll::she’ll
+:C:shesaid::she said
+:C:shineing::shining
+:C:shiped::shipped
+:C:shoudl::should
+:C:shoudln't::shouldn’t
+:C:should of been::should have been
+:C:should of had::should have had
+:C:shouldent::shouldn’t
+:C:shouldn;t::shouldn’t
+:C:shouldnt::shouldn’t
+:C:showinf::showing
+:C:signifacnt::significant
+:C:simalar::similar
+:C:similiar::similar
+:C:simpyl::simply
+:C:sincerly::sincerely
+:C:sitll::still
+:C:smae::same
+:C:smoe::some
+:C:soem::some
+:C:sohw::show
+:C:soical::social
+:C:somethign::something
+:C:someting::something
+:C:somewaht::somewhat
+:C:somthing::something
+:C:somtimes::sometimes
+:C:sot hat::so that
+:C:soudn::sound
+:C:soudns::sounds
+:C:speach::speech
+:C:specificaly::specifically
+:C:specificalyl::specifically
+:C:statment::statement
+:C:statments::statements
+:C:stnad::stand
+:C:stopry::story
+:C:stoyr::story
+:C:stpo::stop
+:C:strentgh::strength
+:C:stroy::story
+:C:struggel::struggle
+:C:strugle::struggle
+:C:studnet::student
+:C:successfull::successful
+:C:successfuly::successfully
+:C:successfulyl::successfully
+:C:sucess::success
+:C:sucessfull::successful
+:C:sufficiant::sufficient
+:C:suposed::supposed
+:C:suppossed::supposed
+:C:suprise::surprise
+:C:suprised::surprised
+:C:swiming::swimming
+:C:tahn::than
+:C:taht::that
+:C:talekd::talked
+:C:talkign::talking
+:C:tath::that
+:C:tecnical::technical
+:C:teh::the
+:C:tehy::they
+:C:tellt he::tell the
+:C:termoil::turmoil
+:C:tghe::the
+:C:tghis::this
+:C:thansk::thanks
+:C:thats::that’s
+:C:thatt he::that the
+:C:thatthe::that the
+:C:thecompany::the company
+:C:thefirst::the first
+:C:thegovernment::the government
+:C:their are::there are
+:C:their is::there is
+:C:themself::themselves
+:C:themselfs::themselves
+:C:thenew::the new
+:C:there's is::theirs is
+:C:theri::their
+:C:thesame::the same
+:C:thetwo::the two
+:C:they're are::there are
+:C:they're is::there is
+:C:they;l::they’ll
+:C:they;ll::they’ll
+:C:they;r::they’re
+:C:they;re::they’re
+:C:they;v::they’ve
+:C:they;ve::they’ve
+:C:theyll::they’ll
+:C:theyve::they’ve
+:C:thgat::that
+:C:thge::the
+:C:thier::their
+:C:thigsn::things
+:C:thisyear::this year
+:C:thna::than
+:C:thne::then
+:C:thnig::thing
+:C:thnigs::things
+:C:threatend::threatened
+:C:thsi::this
+:C:thsoe::those
+:C:thta::that
+:C:tihs::this
+:C:timne::time
+:C:tiogether::together
+:C:tje::the
+:C:tjhe::the
+:C:tkae::take
+:C:tkaes::takes
+:C:tkaing::taking
+:C:tlaking::talking
+:C:todya::today
+:C:togehter::together
+:C:toldt he::told the
+:C:tomorow::tomorrow
+:C:tongiht::tonight
+:C:tonihgt::tonight
+:C:tot he::to the
+:C:totaly::totally
+:C:totalyl::totally
+:C:tothe::to the
+:C:towrad::toward
+:C:traditionalyl::traditionally
+:C:transfered::transferred
+:C:truely::truly
+:C:truley::truly
+:C:tryed::tried
+:C:tthe::the
+:C:tyhat::that
+:C:tyhe::the
+:C:udnerstand::understand
+:C:understnad::understand
+:C:undert he::under the
+:C:UnitedStates::United States
+:C:unliek::unlike
+:C:unpleasently::unpleasantly
+:C:untilll::until
+:C:useing::using
+:C:usualyl::usually
+:C:veyr::very
+:C:virtualyl::virtually
+:C:vis-a-vis::vis-à-vis
+:C:vrey::very
+:C:vulnerible::vulnerable
+:C:wa snot::was not
+:C:waht::what
+:C:warrent::warrant
+:C:wasnt::wasn’t
+:C:watn::want
+:C:we;d::we’d
+:C:we;ll::we’ll
+:C:we;re::we’re
+:C:we;ve::we’ve
+:C:wehn::when
+:C:wern't::weren’t
+:C:werre::were
+:C:what;s::what’s
+:C:whcih::which
+:C:whent he::when the
+:C:where;s::where’s
+:C:wherre::where
+:C:whic::which
+:C:whicht he::which the
+:C:whihc::which
+:C:who;s::who’s
+:C:who;ve::who’ve
+:C:whta::what
+:C:wief::wife
+:C:wierd::weird
+:C:wihch::which
+:C:wiht::with
+:C:will of been::will have been
+:C:will of had::will have had
+:C:willbe::will be
+:C:windoes::windows
+:C:witha::with a
+:C:withe::with
+:C:witht he::with the
+:C:withthe::with the
+:C:wiull::will
+:C:wnat::want
+:C:wnated::wanted
+:C:wnats::wants
+:C:wo'nt::won’t
+:C:woh::who
+:C:wohle::whole
+:C:wokr::work
+:C:won;t::won’t
+:C:woudl::would
+:C:woudln't::wouldn’t
+:C:would of been::would have been
+:C:would of had::would have had
+:C:wouldbe::would be
+:C:wouldn;t::wouldn’t
+:C:wouldnt::wouldn’t
+:C:wriet::write
+:C:writting::writing
+:C:wrod::word
+:C:wroet::wrote
+:C:wroking::working
+:C:wtih::with
+:C:wuould::would
+:C:wya::way
+:C:yera::year
+:C:yeras::years
+:C:yersa::years
+:C:yoiu::you
+:C:you're own::your own
+:C:you;d::you’d
+:C:you;re::you’re
+:C:youare::you are
+:C:your a::you’re a
+:C:your an::you’re an
+:C:your her::you’re her
+:C:your here::you’re here
+:C:your his::you’re his
+:C:your the::you’re the
+:C:your their::you’re their
+:C:your your::you’re your
+:C:youve::you’ve
+:C:ytou::you
+:C:yuo::you
+:C:yuor::your
+
+;Upper case Autocorrect
+:C:Abbout::About
+:C:Abotu::About
+:C:Abouta::About a
+:C:Aboutit::About it
+:C:Aboutthe::About the
+:C:Abscence::Absence
+:C:Accesories::Accessories
+:C:Accidant::Accident
+:C:Accomodate::Accommodate
+:C:Accordingto::According to
+:C:Accross::Across
+:C:Acheive::Achieve
+:C:Acheived::Achieved
+:C:Acheiving::Achieving
+:C:Acn::Can
+:C:Acommodate::Accommodate
+:C:Acomodate::Accommodate
+:C:Actualyl::Actually
+:C:Additinal::Additional
+:C:Addtional::Additional
+:C:Adequit::Adequate
+:C:Adequite::Adequate
+:C:Adn::And
+:C:Advanage::Advantage
+:C:Affraid::Afraid
+:C:Afterthe::After the
+:C:Againstt he::Against the
+:C:Aganist::Against
+:C:Aggresive::Aggressive
+:C:Agian::Again
+:C:Agreemeent::Agreement
+:C:Agreemeents::Agreements
+:C:Agreemnet::Agreement
+:C:Agreemnets::Agreements
+:C:Agressive::Aggressive
+:C:Ahppen::Happen
+:C:Ahve::Have
+:C:Allwasy::Always
+:C:Allwyas::Always
+:C:Almots::Almost
+:C:Almsot::Almost
+:C:Alomst::Almost
+:C:Alot::A lot
+:C:Alraedy::Already
+:C:Alreayd::Already
+:C:Alreday::Already
+:C:Alwasy::Always
+:C:Alwats::Always
+:C:Alway::Always
+:C:Alwyas::Always
+:C:Amde::Made
+:C:Ameria::America
+:C:Amke::Make
+:C:Amkes::Makes
+:C:Anbd::And
+:C:Andone::And one
+:C:Andt he::And the
+:C:Andteh::And the
+:C:Andthe::And the
+:C:Anothe::Another
+:C:Anual::Annual
+:C:Apparant::Apparent
+:C:Apparrent::Apparent
+:C:Appearence::Appearance
+:C:Appeares::Appears
+:C:Applicaiton::Application
+:C:Applicaitons::Applications
+:C:Applyed::Applied
+:C:Appointiment::Appointment
+:C:Approrpiate::Appropriate
+:C:Approrpriate::Appropriate
+:C:Aquisition::Acquisition
+:C:Aquisitions::Acquisitions
+:C:Aren;t::Aren’t
+:C:Arguement::Argument
+:C:Arguements::Arguments
+:C:Arn't::Aren’t
+:C:Arond::Around
+:C:Artical::Article
+:C:Articel::Article
+:C:Asdvertising::Advertising
+:C:Askt he::Ask the
+:C:Assistent::Assistant
+:C:Asthe::As the
+:C:Atention::Attention
+:C:Atmospher::Atmosphere
+:C:Attentioin::Attention
+:C:Atthe::At the
+:C:Audeince::Audience
+:C:Audiance::Audience
+:C:Availalbe::Available
+:C:Awya::Away
+:C:Aywa::Away
+:C:Bakc::Back
+:C:Balence::Balance
+:C:Ballance::Balance
+:C:Baout::About
+:C:Bcak::Back
+:C:Beacuse::Because
+:C:Becasue::Because
+:C:Becaus::Because
+:C:Becausea::Because a
+:C:Becauseof::Because of
+:C:Becausethe::Because the
+:C:Becauseyou::Because you
+:C:Becomeing::Becoming
+:C:Becomming::Becoming
+:C:Becuase::Because
+:C:Becuse::Because
+:C:Befoer::Before
+:C:Beggining::Beginning
+:C:Begining::Beginning
+:C:Beginining::Beginning
+:C:Beleiev::Believe
+:C:Beleieve::Believe
+:C:Beleif::Belief
+:C:Beleive::Believe
+:C:Beleived::Believed
+:C:Beleives::Believes
+:C:Benifit::Benefit
+:C:Benifits::Benefits
+:C:Betwen::Between
+:C:Beutiful::Beautiful
+:C:Blase::Blasé
+:C:Boxs::Boxes
+:C:Brodcast::Broadcast
+:C:Butthe::But the
+:C:Bve::Be
+:C:Byt he::By the
+:C:Cafe::Café
+:C:Caharcter::Character
+:C:Calcullated::Calculated
+:C:Calulated::Calculated
+:C:Can't of been::Can’t have been
+:C:Can;t::Can’t
+:C:Candidtae::Candidate
+:C:Candidtaes::Candidates
+:C:Catagory::Category
+:C:Categiory::Category
+:C:Certian::Certain
+:C:Challange::Challenge
+:C:Challanges::Challenges
+:C:Chaneg::Change
+:C:Chanegs::Changes
+:C:Changable::Changeable
+:C:Changeing::Changing
+:C:Changng::Changing
+:C:Charachter::Character
+:C:Charachters::Characters
+:C:Charactor::Character
+:C:Charecter::Character
+:C:Charector::Character
+:C:Cheif::Chief
+:C:Chekc::Check
+:C:Chnage::Change
+:C:Cieling::Ceiling
+:C:Circut::Circuit
+:C:Claer::Clear
+:C:Claered::Cleared
+:C:Claerly::Clearly
+:C:Cliant::Client 
+:C:Cliche::Cliché 
+:C:Cna::Can 
+:C:Colection::Collection
+:C:Comanies::Companies
+:C:Comany::Company
+:C:Comapnies::Companies
+:C:Comapny::Company
+:C:Combintation::Combination
+:C:Comited::Committed
+:C:Comittee::Committee
+:C:Commadn::Command
+:C:Comming::Coming
+:C:Commitee::Committee
+:C:Committe::Committee
+:C:Committment::Commitment
+:C:Committments::Commitments
+:C:Committy::Committee
+:C:Comntain::Contain
+:C:Comntains::Contains
+:C:Compair::Compare
+:C:Company;s::Company’s
+:C:Compleated::Completed
+:C:Compleatly::Completely
+:C:Compleatness::Completeness
+:C:Completly::Completely
+:C:Completness::Completeness
+:C:Composate::Composite
+:C:Comtain::Contain 
+:C:Comtains::Contains 
+:C:Comunicate::Communicate 
+:C:Comunity::Community
+:C:Condolances::Condolences
+:C:Conected::Connected
+:C:Conferance::Conference
+:C:Confirmmation::Confirmation
+:C:Considerit::Considerate
+:C:Considerite::Considerate
+:C:Consonent::Consonant
+:C:Conspiricy::Conspiracy
+:C:Consultent::Consultant
+:C:Convertable::Convertible
+:C:Cooparate::Cooperate
+:C:Cooporate::Cooperate
+:C:Corproation::Corporation
+:C:Corproations::Corporations
+:C:Corruptable::Corruptible
+:C:Cotten::Cotton
+:C:Coudl::Could
+:C:Coudln't::Couldn’t
+:C:Coudn't::Couldn’t
+:C:Could of been::Could have been
+:C:Could of had::Could have had
+:C:Couldn;t::Couldn’t
+:C:Couldnt::Couldn’t
+:C:Couldthe::Could the
+:C:Cpoy::Copy
+:C:Creme::Crème
+:C:Ctaegory::Category
+:C:Cusotmer::Customer
+:C:Cusotmers::Customers
+:C:Cutsomer::Customer
+:C:Cutsomers::Customers
+:C:Cxan::Can
+:C:Danceing::Dancing
+:C:Dcument::Document
+:C:Deatils::Details
+:C:Decison::Decision
+:C:Decisons::Decisions
+:C:Decor::Décor
+:C:Defendent::Defendant
+:C:Definately::Definitely
+:C:Deja vu::Déjà vu 
+:C:Deptartment::Department 
+:C:Desicion::Decision
+:C:Desicions::Decisions
+:C:Desision::Decision
+:C:Desisions::Decisions
+:C:Detente::Détente
+:C:Develeoprs::Developers
+:C:Devellop::Develop
+:C:Develloped::Developed
+:C:Develloper::Developer
+:C:Devellopers::Developers
+:C:Develloping::Developing
+:C:Devellopment::Development
+:C:Devellopments::Developments
+:C:Devellops::Develop
+:C:Develope::Develop
+:C:Developement::Development
+:C:Developements::Developments
+:C:Developor::Developer
+:C:Developors::Developers
+:C:Develpment::Development
+:C:Diaplay::Display
+:C:Didint::Didn’t
+:C:Didn;t::Didn’t
+:C:Didnot::Did not
+:C:Didnt::Didn’t
+:C:Difefrent::Different
+:C:Diferences::Differences
+:C:Differance::Difference
+:C:Differances::Differences
+:C:Differant::Different
+:C:Differemt::Different
+:C:Differnt::Different
+:C:Diffrent::Different
+:C:Directer::Director
+:C:Directers::Directors
+:C:Directiosn::Direction
+:C:Disatisfied::Dissatisfied
+:C:Discoverd::Discovered
+:C:Disign::Design
+:C:Dispaly::Display
+:C:Dissonent::Dissonant
+:C:Distribusion::Distribution 
+:C:Divsion::Division 
+:C:Do'nt::Don’t 
+:C:Docuement::Documents 
+:C:Docuemnt::Document 
+:C:Documetn::Document 
+:C:Documnet::Document 
+:C:Documnets::Documents 
+:C:Doe snot::Does not 
+:C:Doens't::Doesn’t
+:C:Doese::Does
+:C:Doesn;t::Doesn’t
+:C:Doesnt::Doesn’t
+:C:Doign::Doing
+:C:Doimg::Doing
+:C:Doind::Doing
+:C:Dollers::Dollars
+:C:Don't no::Don’t know
+:C:Don;t::Don’t
+:C:Donig::Doing
+:C:Dont::Don’t
+:C:Dosn't::Doesn’t
+:C:Driveing::Driving
+:C:Drnik::Drink
+:C:Eclair::Éclair
+:C:Efel::Feel
+:C:Effecient::Efficient 
+:C:Efort::Effort 
+:C:Eforts::Efforts 
+:C:Ehr::Her 
+:C:Eligable::Eligible 
+:C:Embarass::Embarrass 
+:C:Emigre::Émigré 
+:C:Enought::Enough
+:C:Entree::Entrée
+:C:Equippment::Equipment
+:C:Equivalant::Equivalent
+:C:Esle::Else
+:C:Especally::Especially
+:C:Especialyl::Especially
+:C:Espesially::Especially
+:C:Excellant::Excellent
+:C:Excercise::Exercise 
+:C:Exchagne::Exchange 
+:C:Exchagnes::Exchanges 
+:C:Excitment::Excitement 
+:C:Exhcange::Exchange 
+:C:Exhcanges::Exchanges 
+:C:Experiance::Experience 
+:C:Experienc::Experience 
+:C:Exprience::Experience 
+:C:Exprienced::Experienced 
+:C:Eyt::Yet 
+:C:Facade::Façade 
+:C:Faeture::Feature 
+:C:Faetures::Features 
+:C:Familair::Familiar
+:C:Familar::Familiar
+:C:Familliar::Familiar
+:C:Fammiliar::Familiar
+:C:Feild::Field
+:C:Feilds::Fields
+:C:Fianlly::Finally
+:C:Fidn::Find
+:C:Finalyl::Finally
+:C:Firends::Friends
+:C:Firts::First
+:C:Follwo::Follow
+:C:Follwoing::Following
+:C:Fora::For a
+:C:Foriegn::Foreign
+:C:Forthe::For the
+:C:Forwrd::Forward
+:C:Forwrds::Forwards
+:C:Foudn::Found
+:C:Foward::Forward
+:C:Fowards::Forwards
+:C:Freind::Friend
+:C:Freindly::Friendly
+:C:Freinds::Friends
+:C:Frmo::From
+:C:Fromt he::From the
+:C:Fromthe::From the
+:C:Furneral::Funeral
+:C:Fwe::Few
+:C:Garantee::Guarantee
+:C:Gaurd::Guard
+:C:Gemeral::General
+:C:Gerat::Great
+:C:Geting::Getting
+:C:Gettin::Getting
+:C:Gievn::Given
+:C:Giveing::Giving
+:C:Gloabl::Global
+:C:Goign::Going
+:C:Gonig::Going
+:C:Govenment::Government
+:C:Goverment::Government
+:C:Gruop::Group
+:C:Gruops::Groups
+:C:Grwo::Grow
+:C:Guidlines::Guidelines
+:C:Hadbeen::Had been
+:C:Hadn;t::Hadn’t
+:C:Haev::Have
+:C:Hapen::Happen
+:C:Hapened::Happened
+:C:Hapening::Happening
+:C:Hapens::Happens
+:C:Happend::Happened
+:C:Hasbeen::Has been
+:C:Hasn;t::Hasn’t
+:C:Hasnt::Hasn’t
+:C:Havebeen::Have been
+:C:Haveing::Having
+:C:Haven;t::Haven’t
+:C:Hda::Had
+:C:He;ll::He’ll
+:C:Hearign::Hearing
+:C:Helpfull::Helpful
+:C:Here;s::Here’s
+:C:Hesaid::He said
+:C:Hewas::He was
+:C:Hge::He
+:C:Hismelf::Himself
+:C:Hlep::Help
+:C:Hsa::Has
+:C:Hsi::His
+:C:Hte::The
+:C:Htere::There
+:C:Htese::These
+:C:Htey::They
+:C:Hting::Thing
+:C:Htink::Think
+:C:Htis::This
+:C:Htp:::Http:
+:C:Http:\\::Http://
+:C:Httpl::Http:
+:C:Hvae::Have
+:C:Hvaing::Having
+:C:Hwich::Which
+:C:I::I
+:C:I snot::Is not
+:C:I"m::I’m
+:C:I;d::I’d
+:C:I;ll::I’ll
+:C:Idae::Idea
+:C:Idaes::Ideas
+:C:Identofy::Identify
+:C:Ihs::His
+:C:Iits the::It’s the
+:C:Imediate::Immediate
+:C:Imediatly::Immediately
+:C:Immediatly::Immediately
+:C:Importent::Important 
+:C:Importnat::Important 
+:C:Impossable::Impossible 
+:C:Improvemnt::Improvement
+:C:Improvment::Improvement
+:C:Includ::Include
+:C:Indecate::Indicate
+:C:Indenpendence::Independence
+:C:Indenpendent::Independent
+:C:Indepedent::Independent
+:C:Independance::Independence
+:C:Independant::Independent
+:C:Influance::Influence 
+:C:Infomation::Information 
+:C:Informatoin::Information 
+:C:Inital::Initial
+:C:Instaleld::Installed
+:C:Insted::Instead
+:C:Insurence::Insurance
+:C:Int he::In the
+:C:Inteh::In the
+:C:Interum::Interim
+:C:Inthe::In the
+:C:Inwhich::In which
+:C:Isn;t::Isn’t
+:C:Isthe::Is the
+:C:It snot::It’s not
+:C:It' snot::It’s not
+:C:It;ll::It’ll
+:C:It;s::It’s
+:C:Itis::It is
+:C:Ititial::Initial
+:C:Itnerest::Interest
+:C:Itnerested::Interested
+:C:Itneresting::Interesting
+:C:Itnerests::Interests
+:C:Its a::It’s a
+:C:Its the::It’s the
+:C:Itwas::It was
+:C:Iwll::Will
+:C:Iwth::With
+:C:Jsut::Just
+:C:Jugment::Judgment
+:C:Knowldge::Knowledge
+:C:Knowlege::Knowledge
+:C:Knwo::Know
+:C:Knwon::Known
+:C:Knwos::Knows
+:C:Konw::Know
+:C:Konwn::Known
+:C:Konws::Knows
+:C:Labratory::Laboratory
+:C:Lastyear::Last year
+:C:Learnign::Learning
+:C:Lenght::Length
+:C:Let's him::Lets him
+:C:Let's it::Lets it
+:C:Let;s::Let’s
+:C:Levle::Level
+:C:Libary::Library
+:C:Librarry::Library
+:C:Librery::Library
+:C:Liek::Like
+:C:Liekd::Liked
+:C:Lieutenent::Lieutenant
+:C:Liev::Live
+:C:Likly::Likely
+:C:Lisense::License
+:C:Littel::Little
+:C:Litttle::Little
+:C:Liuke::Like
+:C:Liveing::Living
+:C:Loev::Love
+:C:Lonly::Lonely
+:C:Lookign::Looking
+:C:Maintenence::Maintenance
+:C:Makeing::Making
+:C:Managment::Management
+:C:Mantain::Maintain
+:C:Marraige::Marriage
+:C:May of been::May have been
+:C:May of had::May have had
+:C:Memeber::Member 
+:C:Merchent::Merchant 
+:C:Mesage::Message 
+:C:Mesages::Messages 
+:C:Might of been::Might have been
+:C:Might of had::Might have had
+:C:Mispell::Misspell
+:C:Mispelling::Misspelling
+:C:Mispellings::Misspellings
+:C:Mkae::Make
+:C:Mkaes::Makes
+:C:Mkaing::Making
+:C:Moeny::Money
+:C:Morgage::Mortgage
+:C:Mroe::More
+:C:Must of been::Must have been
+:C:Must of had::Must have had
+:C:Mysefl::Myself
+:C:Myu::My
+:C:Naive::Naïve
+:C:Necassarily::Necessarily
+:C:Necassary::Necessary
+:C:Neccessarily::Necessarily
+:C:Neccessary::Necessary
+:C:Necesarily::Necessarily
+:C:Necesary::Necessary
+:C:Negotiaing::Negotiating
+:C:Nkow::Know
+:C:Nothign::Nothing
+:C:Nver::Never
+:C:Nwe::New
+:C:Nwo::Now
+:C:Obediant::Obedient
+:C:Ocasion::Occasion
+:C:Occassion::Occasion
+:C:Occured::Occurred
+:C:Occurence::Occurrence
+:C:Occurrance::Occurrence
+:C:Ocur::Occur
+:C:Oeprator::Operator
+:C:Ofits::Of its
+:C:Oft he::Of the
+:C:Ofthe::Of the
+:C:Oging::Going
+:C:Ohter::Other
+:C:Omre::More
+:C:Oneof::One of
+:C:Onepoint::One point
+:C:Ont he::On the
+:C:Onthe::On the
+:C:Onyl::Only
+:C:Oppasite::Opposite
+:C:Opperation::Operation
+:C:Oppertunity::Opportunity
+:C:Opposate::Opposite
+:C:Opposible::Opposable
+:C:Opposit::Opposite
+:C:Oppotunities::Opportunities
+:C:Oppotunity::Opportunity
+:C:Orginization::Organization
+:C:Orginized::Organized
+:C:Otehr::Other
+:C:Otu::Out
+:C:Outof::Out of
+:C:Overthe::Over the
+:C:Owrk::Work
+:C:Owuld::Would
+:C:Oxident::Oxidant
+:C:Papaer::Paper
+:C:Parliment::Parliament
+:C:Partof::Part of
+:C:Paymetn::Payment
+:C:Paymetns::Payments
+:C:Pciture::Picture
+:C:Peice::Piece
+:C:Peices::Pieces
+:C:Peolpe::People
+:C:Peopel::People
+:C:Percentof::Percent of
+:C:Percentto::Percent to
+:C:Performence::Performance
+:C:Perhasp::Perhaps
+:C:Perhpas::Perhaps
+:C:Permanant::Permanent 
+:C:Perminent::Permanent 
+:C:Personalyl::Personally 
+:C:Pleasent::Pleasant
+:C:Poeple::People
+:C:Porblem::Problem
+:C:Porblems::Problems
+:C:Porvide::Provide
+:C:Possable::Possible
+:C:Postition::Position
+:C:Potentialy::Potentially
+:C:Pregnent::Pregnant
+:C:Presance::Presence
+:C:Probelm::Problem
+:C:Probelms::Problems
+:C:Prominant::Prominent
+:C:Protege::Protégé
+:C:Protoge::Protégé 
+:C:Psoition::Position 
+:C:Ptogress::Progress 
+:C:Puting::Putting
+:C:Pwoer::Power
+:C:Quater::Quarter
+:C:Quaters::Quarters 
+:C:Quesion::Question 
+:C:Quesions::Questions 
+:C:Questioms::Questions 
+:C:Questiosn::Questions 
+:C:Questoin::Question 
+:C:Quetion::Question
+:C:Quetions::Questions
+:C:Realyl::Really
+:C:Reccomend::Recommend
+:C:Reccommend::Recommend
+:C:Receieve::Receive
+:C:Recieve::Receive
+:C:Recieved::Received
+:C:Recieving::Receiving
+:C:Recomend::Recommend
+:C:Recomendation::Recommendation
+:C:Recomendations::Recommendations
+:C:Recomended::Recommended
+:C:Reconize::Recognize
+:C:Recrod::Record
+:C:Religous::Religious
+:C:Reluctent::Reluctant
+:C:Remeber::Remember
+:C:Reommend::Recommend
+:C:Representativs::Representatives
+:C:Representives::Representatives
+:C:Represetned::Represented
+:C:Represnt::Represent
+:C:Reserach::Research
+:C:Resollution::Resolution
+:C:Resorces::Resources
+:C:Respomd::Respond
+:C:Respomse::Response
+:C:Responce::Response
+:C:Responsability::Responsibility
+:C:Responsable::Responsible
+:C:Responsibile::Responsible
+:C:Responsiblity::Responsibility
+:C:Restaraunt::Restaurant
+:C:Restuarant::Restaurant
+:C:Reult::Result
+:C:Reveiw::Review
+:C:Reveiwing::Reviewing
+:C:Rwite::Write
+:C:Rythm::Rhythm
+:C:Saidhe::Said he
+:C:Saidit::Said it
+:C:Saidt he::Said the
+:C:Saidthat::Said that
+:C:Saidthe::Said the
+:C:Scedule::Schedule
+:C:Sceduled::Scheduled
+:C:Seance::Séance
+:C:Secratary::Secretary
+:C:Sectino::Section
+:C:Seh::She
+:C:Selectoin::Selection
+:C:Sentance::Sentence
+:C:Separeate::Separate
+:C:Seperate::Separate
+:C:Sercumstances::Circumstances
+:C:Shcool::School
+:C:She;ll::She’ll
+:C:Shesaid::She said
+:C:Shineing::Shining
+:C:Shiped::Shipped
+:C:Shoudl::Should
+:C:Shoudln't::Shouldn’t
+:C:Should of been::Should have been
+:C:Should of had::Should have had
+:C:Shouldent::Shouldn’t
+:C:Shouldn;t::Shouldn’t
+:C:Shouldnt::Shouldn’t
+:C:Showinf::Showing
+:C:Signifacnt::Significant
+:C:Simalar::Similar
+:C:Similiar::Similar
+:C:Simpyl::Simply
+:C:Sincerly::Sincerely
+:C:Sitll::Still
+:C:Smae::Same
+:C:Smoe::Some
+:C:Soem::Some
+:C:Sohw::Show
+:C:Soical::Social
+:C:Somethign::Something
+:C:Someting::Something
+:C:Somewaht::Somewhat
+:C:Somthing::Something
+:C:Somtimes::Sometimes
+:C:Sot hat::So that
+:C:Soudn::Sound
+:C:Soudns::Sounds
+:C:Speach::Speech
+:C:Specificaly::Specifically
+:C:Specificalyl::Specifically
+:C:Statment::Statement
+:C:Statments::Statements
+:C:Stnad::Stand
+:C:Stopry::Story
+:C:Stoyr::Story
+:C:Stpo::Stop
+:C:Strentgh::Strength
+:C:Stroy::Story
+:C:Struggel::Struggle
+:C:Strugle::Struggle
+:C:Studnet::Student
+:C:Successfull::Successful
+:C:Successfuly::Successfully
+:C:Successfulyl::Successfully
+:C:Sucess::Success
+:C:Sucessfull::Successful
+:C:Sufficiant::Sufficient
+:C:Suposed::Supposed
+:C:Suppossed::Supposed
+:C:Suprise::Surprise
+:C:Suprised::Surprised
+:C:Swiming::Swimming
+:C:Tahn::Than
+:C:Taht::That
+:C:Talekd::Talked
+:C:Talkign::Talking
+:C:Tath::That
+:C:Tecnical::Technical
+:C:Teh::The
+:C:Tehy::They
+:C:Tellt he::Tell the
+:C:Termoil::Turmoil
+:C:Tghe::The
+:C:Tghis::This
+:C:Thansk::Thanks
+:C:Thats::That’s
+:C:Thatt he::That the
+:C:Thatthe::That the
+:C:Thecompany::The company
+:C:Thefirst::The first
+:C:Thegovernment::The government
+:C:Their are::There are
+:C:Their is::There is
+:C:Themself::Themselves
+:C:Themselfs::Themselves
+:C:Thenew::The new
+:C:There's is::Theirs is
+:C:Theri::Their
+:C:Thesame::The same
+:C:Thetwo::The two
+:C:They're are::There are
+:C:They're is::There is
+:C:They;l::They’ll
+:C:They;ll::They’ll
+:C:They;r::They’re
+:C:They;re::They’re
+:C:They;v::They’ve
+:C:They;ve::They’ve
+:C:Theyll::They’ll
+:C:Theyve::They’ve
+:C:Thgat::That
+:C:Thge::The
+:C:Thier::Their
+:C:Thigsn::Things
+:C:Thisyear::This year
+:C:Thna::Than
+:C:Thne::Then
+:C:Thnig::Thing
+:C:Thnigs::Things
+:C:Threatend::Threatened
+:C:Thsi::This
+:C:Thsoe::Those
+:C:Thta::That
+:C:Tihs::This
+:C:Timne::Time
+:C:Tiogether::Together
+:C:Tje::The
+:C:Tjhe::The
+:C:Tkae::Take
+:C:Tkaes::Takes
+:C:Tkaing::Taking
+:C:Tlaking::Talking
+:C:Todya::Today
+:C:Togehter::Together
+:C:Toldt he::Told the
+:C:Tomorow::Tomorrow
+:C:Tongiht::Tonight
+:C:Tonihgt::Tonight
+:C:Tot he::To the
+:C:Totaly::Totally
+:C:Totalyl::Totally
+:C:Tothe::To the
+:C:Towrad::Toward
+:C:Traditionalyl::Traditionally
+:C:Transfered::Transferred
+:C:Truely::Truly
+:C:Truley::Truly
+:C:Tryed::Tried
+:C:Tthe::The
+:C:Tyhat::That
+:C:Tyhe::The
+:C:Udnerstand::Understand
+:C:Understnad::Understand
+:C:Undert he::Under the
+:C:Unitedstates::United states
+:C:Unliek::Unlike
+:C:Unpleasently::Unpleasantly
+:C:Untilll::Until
+:C:Useing::Using
+:C:Usualyl::Usually
+:C:Veyr::Very
+:C:Virtualyl::Virtually
+:C:Vis-a-vis::Vis-à-vis
+:C:Vrey::Very
+:C:Vulnerible::Vulnerable
+:C:Wa snot::Was not
+:C:Waht::What
+:C:Warrent::Warrant
+:C:Wasnt::Wasn’t
+:C:Watn::Want
+:C:We;d::We’d
+:C:We;ll::We’ll
+:C:We;re::We’re
+:C:We;ve::We’ve
+:C:Wehn::When
+:C:Wern't::Weren’t
+:C:Werre::Were
+:C:What;s::What’s
+:C:Whcih::Which
+:C:Whent he::When the
+:C:Where;s::Where’s
+:C:Wherre::Where
+:C:Whic::Which
+:C:Whicht he::Which the
+:C:Whihc::Which
+:C:Who;s::Who’s
+:C:Who;ve::Who’ve
+:C:Whta::What
+:C:Wief::Wife
+:C:Wierd::Weird
+:C:Wihch::Which
+:C:Wiht::With
+:C:Will of been::Will have been
+:C:Will of had::Will have had
+:C:Willbe::Will be
+:C:Windoes::Windows
+:C:Witha::With a
+:C:Withe::With
+:C:Witht he::With the
+:C:Withthe::With the
+:C:Wiull::Will
+:C:Wnat::Want
+:C:Wnated::Wanted
+:C:Wnats::Wants
+:C:Wo'nt::Won’t
+:C:Woh::Who
+:C:Wohle::Whole
+:C:Wokr::Work
+:C:Won;t::Won’t
+:C:Woudl::Would
+:C:Woudln't::Wouldn’t
+:C:Would of been::Would have been
+:C:Would of had::Would have had
+:C:Wouldbe::Would be
+:C:Wouldn;t::Wouldn’t
+:C:Wouldnt::Wouldn’t
+:C:Wriet::Write
+:C:Writting::Writing
+:C:Wrod::Word
+:C:Wroet::Wrote
+:C:Wroking::Working
+:C:Wtih::With
+:C:Wuould::Would
+:C:Wya::Way
+:C:Yera::Year
+:C:Yeras::Years
+:C:Yersa::Years
+:C:Yoiu::You
+:C:You're own::Your own
+:C:You;d::You’d
+:C:You;re::You’re
+:C:Youare::You are
+:C:Your a::You’re a
+:C:Your an::You’re an
+:C:Your her::You’re her
+:C:Your here::You’re here
+:C:Your his::You’re his
+:C:Your the::You’re the
+:C:Your their::You’re their
+:C:Your your::You’re your
+:C:Youve::You’ve
+:C:Ytou::You
+:C:Yuo::You
+:C:Yuor::Your
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
