@@ -11,3 +11,22 @@
     Reload()   ; Restarts the script with the new changes
 }
 #HotIf
+
+#Requires AutoHotkey v2.0
+#SingleInstance Force
+
+; 1. Auto-Execute Admin Check
+; Ensures your commands have the permissions they need
+if !A_IsAdmin
+{
+    Run("*RunAs " . A_ScriptFullPath)
+    ExitApp()
+}
+
+; 2. Immediate Reload Feedback
+; Plays the sound and shows the tip the millisecond the script is ready
+SoundPlay(A_WinDir . "\Media\Windows Ding.wav")
+ToolTip("🚀 Script ACTIVE")
+
+; 3. Clear the notification after 3 seconds
+SetTimer(() => ToolTip(), -3000)
