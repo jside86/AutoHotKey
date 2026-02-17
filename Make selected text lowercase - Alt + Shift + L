@@ -1,0 +1,11 @@
+; Make selected text lowercase - Alt + Shift + L
++!l::
+{
+    A_Clipboard := ""
+    Send("^c")
+    if ClipWait(2)
+    {
+        A_Clipboard := StrLower(A_Clipboard)
+        Send("^v")
+    }
+}
