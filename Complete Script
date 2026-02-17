@@ -248,8 +248,8 @@ SetTimer(() => ToolTip(), -3000)
 ::dont::don't
 ::recieve::receive
 ::btw::by the way
-:*:@@::jside86@gmail.com
-::hadd::168A Avenue NW
+:*:@@::YourEmail@gmail.com
+::hadd::Your address
 ::doesnt::doesn't
 ::wied::weird
 ::occured::occurred
@@ -259,9 +259,6 @@ SetTimer(() => ToolTip(), -3000)
 ::AHK::AutoHotKey
 ::thakns::thanks
 ::didnt::didn't
-
-
-::caf::Canadian Armed Forces
 
 ::.date::
 {
