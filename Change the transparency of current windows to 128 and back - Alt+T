@@ -1,0 +1,9 @@
+; Change the transparency of current windows to 128 and back - Alt+T
+!t::  
+{
+    currentTrans := WinGetTransparent("A")
+    if (currentTrans = 128)
+        WinSetTransparent(255, "A")
+    else
+        WinSetTransparent(128, "A")
+}
