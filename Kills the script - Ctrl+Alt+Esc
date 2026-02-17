@@ -1,0 +1,2 @@
+; Kills the script - Ctrl+Alt+Esc
+^!Escape::ExitApp() 
