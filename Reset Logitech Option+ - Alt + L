@@ -1,0 +1,24 @@
+!l:: ; Reset Logitech Option+ - Alt + L 
+{
+    ToolTip("Force Killing Logi Processes...")
+    
+    ; We kill all three specific names shown in your image
+    ; /F is force, /T kills child processes like the Broker
+    RunWait("taskkill /F /IM logioptionsplus_agent.exe /T",, "Hide")
+    RunWait("taskkill /F /IM logioptionsplus_appbroker.exe /T",, "Hide")
+    RunWait("taskkill /F /IM logioptionsplus_updater.exe /T",, "Hide")
+    
+    Sleep(1000) ; Give Windows a full second to clear the memory
+    
+    ; Relaunch the Agent (it will pull the others up with it)
+    LogiPath := "C:\Program Files\Logi\LogiOptionsPlus\logioptionsplus_agent.exe"
+    
+    if FileExist(LogiPath) {
+        Run(LogiPath)
+        ToolTip("Logitech Restored Successfully")
+    } else {
+        ToolTip("Error: logioptionsplus_agent.exe not found at path")
+    }
+
+    SetTimer(() => ToolTip(), -3000)
+}
