@@ -1,0 +1,13 @@
+#Requires AutoHotkey v2.0
+
+; While VS Code is active to Save AND Reload the script - Ctrl + S
+; Useful if you often change your script and don't want to have to manually reaload the script.
+
+#HotIf WinActive("ahk_exe Code.exe")
+^s::
+{
+    Send("^s") ; Sends the native Save command to VS Code
+    Sleep(300) ; Brief pause to ensure the file is written to the drive
+    Reload()   ; Restarts the script with the new changes
+}
+#HotIf
