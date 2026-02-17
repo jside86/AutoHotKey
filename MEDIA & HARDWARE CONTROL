@@ -1,0 +1,52 @@
+;------------------------------------------------------------------------------
+; MEDIA & HARDWARE CONTROL
+;------------------------------------------------------------------------------
+
+; Play/Pause Media - Ctrl+Alt+Space
+^!Space::Send("{Media_Play_Pause}")
+
+; Previous Media - Ctrl+Alt+Left
+^!Left::Send("{Media_Prev}")
+
+; Next Media- Ctrl+Alt+Right
+^!Right::Send("{Media_Next}")
+
+; Up and down volume - Alt + Scroll Wheel
+!WheelUp::Send("{Volume_Up}")
+!WheelDown::Send("{Volume_Down}")
+
+; Stacked Hotkeys: Both trigger the code below
+^!m::             ; Ctrl + Alt + M
+!#1::       ; Alt + Mouse Side Button (Back)
+{
+    SoundSetMute(-1) ; Toggle Mute
+    
+    ; Bigger notification as requested
+    isMuted := SoundGetMute()
+    ToolTip(isMuted ? "`n  🔇 SOUND MUTED  `n " : "`n  🔊 SOUND ON  `n ")
+    SetTimer(() => ToolTip(), -2000)
+}
+
+; Toggle the audio source between speaker and headset -  Ctrl + Alt + S
+; Requires Nircmd and to have the correct names for each audio outputs.
+#Requires AutoHotkey v2.0
+
+
+^!s:: 
+{
+    static toggle := 0
+    
+    if (toggle = 0) {
+        ; Use the new name for the headset
+        Run("nircmd setdefaultsounddevice Headset",, "Hide")
+        ToolTip("Audio: Headset (Logitech)")
+        toggle := 1
+    } else {
+        ; Use the new name for the desktop speakers
+        Run("nircmd setdefaultsounddevice `"Desktop Speakers`"",, "Hide")
+        ToolTip("Audio: Desktop Speakers (Realtek)")
+        toggle := 0
+    }
+    
+    SetTimer () => ToolTip(), -1500 
+}
