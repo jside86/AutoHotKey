@@ -1,0 +1,28 @@
+; Copy selected text, open and query Gemini - Alt + G
+#Requires AutoHotkey v2.0
+
+!g:: ; Alt + G
+{
+    ; 1. Copy the highlighted text
+    A_Clipboard := "" 
+    Send("^c")
+    if !ClipWait(2)
+        return
+
+    ; 2. Open Gemini
+    Run("https://gemini.google.com/app")
+
+    ; 3. Wait for the browser window to appear (Max 5 seconds)
+    if WinWaitActive("ahk_exe chrome.exe", , 5) or WinWaitActive("ahk_exe msedge.exe", , 5)
+    {
+        Sleep(1500) ; Wait 1.5s for the page elements to actually load
+        
+        ; 4. Paste the text
+        Send("^v")
+        
+        Sleep(300) ; Tiny pause to ensure paste is finished
+        
+        ; 5. Press Enter to send the query
+        Send("{Enter}")
+    }
+}
