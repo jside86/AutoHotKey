@@ -1,0 +1,7 @@
+; Seach google selected text - Ctrl+Shift+c 
+^+c::
+{
+    A_Clipboard := ""             ; Clear clipboard
+    Send("^c")                    ; Copy selected text
+    if ClipWait(2)                ; Wait up to 2s for text to arrive
+        Run("https://www.google.com/search?q=" . A_Clipboard)
